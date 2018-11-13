@@ -6,6 +6,8 @@ import torch
 from torch.optim.lr_scheduler import StepLR
 import torchtext
 
+import sys
+sys.path.append('.')
 import seq2seq
 from seq2seq.trainer import SupervisedTrainer
 from seq2seq.models import EncoderRNN, DecoderRNN, Seq2seq
@@ -28,6 +30,12 @@ except NameError:
 #      # resuming from a specific checkpoint
 #      python examples/sample.py --train_path $TRAIN_PATH --dev_path $DEV_PATH --expt_dir $EXPT_PATH --load_checkpoint $CHECKPOINT_DIR
 
+# For extract_unify data:
+#   # training
+#   python examples/sample.py --train_path data/unify/train/data.txt --dev_path data/unify/dev/data.txt --expt_dir ./models/unify/
+#   # test
+#   python examples/sample.py --test_path data/unify/test/data.txt --load_checkpoint ./models/2018_11_13_14_27_20
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--train_path', action='store', dest='train_path',
                     help='Path to train data')
@@ -43,6 +51,7 @@ parser.add_argument('--resume', action='store_true', dest='resume',
 parser.add_argument('--log-level', dest='log_level',
                     default='info',
                     help='Logging level.')
+parser.add_argument('--test_path', dest='test_path', help='For Test dataset.')
 
 opt = parser.parse_args()
 
@@ -118,19 +127,37 @@ else:
         # optimizer.set_scheduler(scheduler)
 
     # train
-    t = SupervisedTrainer(loss=loss, batch_size=32,
-                          checkpoint_every=50,
-                          print_every=10, expt_dir=opt.expt_dir)
+    t = SupervisedTrainer(loss=loss, batch_size=64,
+                          checkpoint_every=500,
+                          print_every=100, expt_dir=opt.expt_dir)
 
     seq2seq = t.train(seq2seq, train,
-                      num_epochs=6, dev_data=dev,
+                      num_epochs=100, dev_data=dev,
                       optimizer=optimizer,
                       teacher_forcing_ratio=0.5,
                       resume=opt.resume)
 
 predictor = Predictor(seq2seq, input_vocab, output_vocab)
 
-while True:
-    seq_str = raw_input("Type in a source sequence:")
-    seq = seq_str.strip().split()
-    print(predictor.predict(seq))
+# load checkpoint and do test dataset by lh
+if opt.load_checkpoint is not None and opt.test_path is not None:
+    total, acc = 0, 0
+    with open(opt.test_path) as fd:
+        for line in fd:
+            terms = line.strip().split('\t')
+            input = ''.join([c for c in terms[0] if c!=' '])
+            target = ''.join([ c for c in terms[1] if c!=' '])
+            seq = [c for c in input if c != ' ']
+            pred = predictor.predict(seq)
+            pred = ''.join(pred).strip('<eos>')
+            print(input + '\t' + target + '\t' + pred)
+            total += 1
+            if target == pred:
+                acc += 1
+    print('Accuracy: ' + str(float(acc/total)))
+else:
+    while True:
+        seq_str = raw_input("Type in a source sequence:")
+        seq = seq_str.strip().split()
+        print(predictor.predict(seq))
+

@@ -111,10 +111,13 @@ class DecoderRNN(BaseRNN):
         if self.use_attention:
             ret_dict[DecoderRNN.KEY_ATTN_SCORE] = list()
 
+        # actively in eval step inputs is target_variable is None bylh
+        # and in train step inputs is target_variable (target)
         inputs, batch_size, max_length = self._validate_args(inputs, encoder_hidden, encoder_outputs,
                                                              function, teacher_forcing_ratio)
         decoder_hidden = self._init_state(encoder_hidden)
 
+        # in eval step not using teacher_forcing bylh
         use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
 
         decoder_outputs = []
@@ -142,7 +145,7 @@ class DecoderRNN(BaseRNN):
             decoder_output, decoder_hidden, attn = self.forward_step(decoder_input, decoder_hidden, encoder_outputs,
                                                                      function=function)
 
-            for di in range(decoder_output.size(1)):
+            for di in range(decoder_output.size(1)):   # vocab size bylh
                 step_output = decoder_output[:, di, :]
                 if attn is not None:
                     step_attn = attn[:, di, :]
@@ -151,7 +154,7 @@ class DecoderRNN(BaseRNN):
                 decode(di, step_output, step_attn)
         else:
             decoder_input = inputs[:, 0].unsqueeze(1)
-            for di in range(max_length):
+            for di in range(max_length):   # train step: target size, eval step: max_length super param bylh
                 decoder_output, decoder_hidden, step_attn = self.forward_step(decoder_input, decoder_hidden, encoder_outputs,
                                                                          function=function)
                 step_output = decoder_output.squeeze(1)
@@ -186,7 +189,8 @@ class DecoderRNN(BaseRNN):
             if encoder_outputs is None:
                 raise ValueError("Argument encoder_outputs cannot be None when attention is used.")
 
-        # inference batch size
+        # inference batch size, at eval step target(as input) is None, and batch using ACTIVE INPUT(encoder_hidden)
+        # and sos_id as first input at time_0
         if inputs is None and encoder_hidden is None:
             batch_size = 1
         else:
@@ -207,6 +211,6 @@ class DecoderRNN(BaseRNN):
                 inputs = inputs.cuda()
             max_length = self.max_length
         else:
-            max_length = inputs.size(1) - 1 # minus the start of sequence symbol
+            max_length = inputs.size(1) - 1 # minus the start of sequence symbol. Actively the inputs is target, this is for TRAIN. bylh
 
         return inputs, batch_size, max_length

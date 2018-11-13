@@ -61,6 +61,7 @@ class Checkpoint(object):
              str: path to the saved checkpoint subdirectory
         """
         date_time = time.strftime('%Y_%m_%d_%H_%M_%S', time.localtime())
+        date_time = "{0}-epoch-{1}".format(date_time, self.epoch)
 
         self._path = os.path.join(experiment_dir, self.CHECKPOINT_DIR_NAME, date_time)
         path = self._path

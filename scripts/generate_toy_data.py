@@ -22,7 +22,9 @@ def generate_dataset(root, name, size):
             seq = []
             for _ in range(length):
                 seq.append(str(random.randint(0, 9)))
-            fout.write("\t".join([" ".join(seq), " ".join(reversed(seq))]))
+            #fout.write("\t".join([" ".join(seq), " ".join(reversed(seq))]))
+            # seq -> sum(seq)  by lh
+            fout.write("\t".join([" ".join(seq), " ".join([str(c) for c in str(sum([int(i) for i in seq if i != ' '])) ])]))
             fout.write('\n')
 
     # generate vocabulary

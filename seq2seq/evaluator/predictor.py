@@ -22,12 +22,13 @@ class Predictor(object):
         self.tgt_vocab = tgt_vocab
 
     def get_decoder_features(self, src_seq):
+        # src_id_seq can be gen to batch by lh
         src_id_seq = torch.LongTensor([self.src_vocab.stoi[tok] for tok in src_seq]).view(1, -1)
         if torch.cuda.is_available():
             src_id_seq = src_id_seq.cuda()
 
         with torch.no_grad():
-            softmax_list, _, other = self.model(src_id_seq, [len(src_seq)])
+            softmax_list, _, other = self.model(src_id_seq, [len(src_seq)])    # target_variable == None
 
         return other
 

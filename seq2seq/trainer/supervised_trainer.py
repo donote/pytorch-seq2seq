@@ -116,12 +116,14 @@ class SupervisedTrainer(object):
                     log.info(log_msg)
 
                 # Checkpoint
+                """
                 if step % self.checkpoint_every == 0 or step == total_steps:
                     Checkpoint(model=model,
                                optimizer=self.optimizer,
                                epoch=epoch, step=step,
                                input_vocab=data.fields[seq2seq.src_field_name].vocab,
                                output_vocab=data.fields[seq2seq.tgt_field_name].vocab).save(self.expt_dir)
+                """
 
             if step_elapsed == 0: continue
 
@@ -133,6 +135,12 @@ class SupervisedTrainer(object):
                 self.optimizer.update(dev_loss, epoch)
                 log_msg += ", Dev %s: %.4f, Accuracy: %.4f" % (self.loss.name, dev_loss, accuracy)
                 model.train(mode=True)
+                # save model by epoch
+                Checkpoint(model=model,
+                           optimizer=self.optimizer,
+                           epoch=epoch, step=step,
+                           input_vocab=data.fields[seq2seq.src_field_name].vocab,
+                           output_vocab=data.fields[seq2seq.tgt_field_name].vocab).save(self.expt_dir)
             else:
                 self.optimizer.update(epoch_loss_avg, epoch)
 
